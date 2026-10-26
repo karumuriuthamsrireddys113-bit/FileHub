@@ -7,7 +7,7 @@ from reportlab.platypus import (
 )
 from report_utils import (
     NumberedCanvas, get_academic_styles, create_code_block,
-    create_toc_table, merge_with_sample_first_four_pages
+    create_toc_table, merge_with_custom_first_four_pages
 )
 
 def build_frontend_report(output_final_pdf):
@@ -317,8 +317,8 @@ export function useDebounce(value, delay = 300) {
     # Build intermediate PDF
     doc.build(story, canvasmaker=NumberedCanvas)
 
-    # Merge with original 4 pages
-    total_pages = merge_with_sample_first_four_pages(temp_pdf, output_final_pdf)
+    # Merge with custom 4 pages
+    total_pages = merge_with_custom_first_four_pages(temp_pdf, output_final_pdf, project_subtitle="File & Document Organizer")
     return total_pages
 
 if __name__ == "__main__":

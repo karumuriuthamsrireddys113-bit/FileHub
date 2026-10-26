@@ -15,5 +15,7 @@ services:
         value: production
       - key: DATABASE_URL
         sync: false
+      - key: JWT_SECRET
+        generateValue: true
       - key: ALLOWED_ORIGINS
         value: '*'

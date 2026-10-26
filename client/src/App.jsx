@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { FolderArchive } from 'lucide-react';
 import Header from './components/Header.jsx';
 import StatsOverview from './components/StatsOverview.jsx';
 import FilterBar from './components/FilterBar.jsx';
@@ -9,6 +10,10 @@ import DocumentFormModal from './components/DocumentFormModal.jsx';
 import DocumentDetailModal from './components/DocumentDetailModal.jsx';
 import DeleteConfirmModal from './components/DeleteConfirmModal.jsx';
 import Toast from './components/Toast.jsx';
+import LoginPage from './components/LoginPage.jsx';
+import SignUpPage from './components/SignUpPage.jsx';
+import ForgotPasswordModal from './components/ForgotPasswordModal.jsx';
+import { fetchCurrentUser, logoutUser } from './services/authService.js';
 import {
   fetchDocuments,
   fetchDocumentStats,
@@ -19,6 +24,34 @@ import {
 
 export default function App() {
   const queryClient = useQueryClient();
+
+  // Auth navigation view state: 'login' | 'signup'
+  const [authView, setAuthView] = useState('login');
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+
+  // Toast feedback state
+  const [toast, setToast] = useState(null);
+
+  const showToast = useCallback((message, type = 'success') => {
+    setToast({ message, type });
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  // 1. Session Query: Check authenticated session on initial load and page refresh
+  const {
+    data: currentUser,
+    isLoading: isCheckingAuth
+  } = useQuery({
+    queryKey: ['auth', 'user'],
+    queryFn: fetchCurrentUser,
+    retry: false,
+    staleTime: 5 * 60 * 1000 // Cache session state for 5 minutes
+  });
 
   // State for pagination, search, filter, and sorting
   const [page, setPage] = useState(1);
@@ -34,19 +67,6 @@ export default function App() {
   const [editingDocument, setEditingDocument] = useState(null);
   const [viewingDocument, setViewingDocument] = useState(null);
   const [deletingDocument, setDeletingDocument] = useState(null);
-
-  // Toast feedback state
-  const [toast, setToast] = useState(null);
-
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-  };
-
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 3500);
-    return () => clearTimeout(timer);
-  }, [toast]);
 
   // Debounce search query so user typing doesn't trigger rapid server requests
   useEffect(() => {
@@ -76,15 +96,14 @@ export default function App() {
     setPage(1);
   };
 
-  // useMemo: Determines whether user has active search or category filters applied.
-  // Using useMemo prevents re-calculating filter boolean and active filter count on irrelevant renders.
   const isFiltered = useMemo(() => {
     return Boolean(debouncedSearch.trim()) || category !== 'All';
   }, [debouncedSearch, category]);
 
-  // 1. TanStack Query: Fetch paginated & filtered documents
+  // 2. TanStack Query: Fetch paginated & filtered documents scoped to authenticated user
   const documentsQuery = useQuery({
     queryKey: ['documents', {
+      userId: currentUser?.id,
       page,
       limit,
       search: debouncedSearch,
@@ -101,24 +120,37 @@ export default function App() {
         sortBy: sortConfig.sortBy,
         order: sortConfig.order
       }),
+    enabled: Boolean(currentUser),
     keepPreviousData: true,
     staleTime: 5000 // Keep fresh for 5 seconds
   });
 
-  // 2. TanStack Query: Fetch dashboard document statistics
+  // 3. TanStack Query: Fetch dashboard document statistics scoped to authenticated user
   const statsQuery = useQuery({
-    queryKey: ['documents', 'stats'],
+    queryKey: ['documents', 'stats', currentUser?.id],
     queryFn: fetchDocumentStats,
+    enabled: Boolean(currentUser),
     staleTime: 10000
   });
 
-  // 3. TanStack Mutation: Create Document
+  // Handle expired sessions gracefully if document requests fail with 401
+  useEffect(() => {
+    if (
+      documentsQuery.error?.response?.status === 401 ||
+      statsQuery.error?.response?.status === 401
+    ) {
+      queryClient.clear();
+      queryClient.setQueryData(['auth', 'user'], null);
+      showToast('Your session has expired. Please log in again.', 'error');
+    }
+  }, [documentsQuery.error, statsQuery.error, queryClient, showToast]);
+
+  // 4. TanStack Mutation: Create Document
   const createMutation = useMutation({
     mutationFn: createDocument,
-    onSuccess: (data) => {
+    onSuccess: () => {
       showToast('Document created successfully!', 'success');
       setIsFormModalOpen(false);
-      // Invalidate queries so document list and dashboard stats update
       queryClient.invalidateQueries({ queryKey: ['documents'] });
     },
     onError: (err) => {
@@ -126,10 +158,10 @@ export default function App() {
     }
   });
 
-  // 4. TanStack Mutation: Update Document
+  // 5. TanStack Mutation: Update Document
   const updateMutation = useMutation({
     mutationFn: updateDocument,
-    onSuccess: (data) => {
+    onSuccess: () => {
       showToast('Document updated successfully!', 'success');
       setIsFormModalOpen(false);
       setEditingDocument(null);
@@ -140,13 +172,12 @@ export default function App() {
     }
   });
 
-  // 5. TanStack Mutation: Delete Document
+  // 6. TanStack Mutation: Delete Document
   const deleteMutation = useMutation({
     mutationFn: deleteDocument,
     onSuccess: () => {
       showToast('Document deleted successfully!', 'success');
       setDeletingDocument(null);
-      // If we deleted the last item on a page > 1, adjust page if needed
       if (documentsQuery.data?.data?.length === 1 && page > 1) {
         setPage((prev) => prev - 1);
       }
@@ -157,9 +188,28 @@ export default function App() {
     }
   });
 
-  // useCallback: Stable event handlers passed down to DocumentList and DocumentCard.
-  // Because DocumentCard and DocumentRow are wrapped in React.memo, passing stable
-  // callbacks ensures that list items do not re-render unless their specific document data changes.
+  // Auth event handlers
+  const handleAuthSuccess = (user) => {
+    queryClient.setQueryData(['auth', 'user'], user);
+    queryClient.invalidateQueries({ queryKey: ['documents'] });
+    showToast(`Welcome, ${user.name}!`, 'success');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.warn('Logout network notice:', err.message);
+    } finally {
+      // Invalidate and clear all TanStack Query cache to avoid exposing stale user data
+      queryClient.clear();
+      queryClient.setQueryData(['auth', 'user'], null);
+      setAuthView('login');
+      showToast('Logged out successfully.', 'success');
+    }
+  };
+
+  // Stable callbacks for DocumentList
   const handleOpenAddModal = useCallback(() => {
     setEditingDocument(null);
     setIsFormModalOpen(true);
@@ -190,10 +240,67 @@ export default function App() {
     deleteMutation.mutate(id);
   };
 
+  // ----------------------------------------------------
+  // 1. Initial Authentication Check Splash Screen
+  // ----------------------------------------------------
+  if (isCheckingAuth) {
+    return (
+      <div className="auth-splash-screen">
+        <div className="auth-splash-card">
+          <div className="brand-icon auth-splash-icon">
+            <FolderArchive size={32} />
+          </div>
+          <h2>FileHub</h2>
+          <p className="auth-splash-sub">Smart File & Document Organizer</p>
+          <div className="auth-splash-loading">
+            <span className="spinner-sm" />
+            <span>Verifying session...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // 2. Unauthenticated View: Render Login or Sign Up
+  // ----------------------------------------------------
+  if (!currentUser) {
+    return (
+      <>
+        {authView === 'signup' ? (
+          <SignUpPage
+            onSwitchToLogin={() => setAuthView('login')}
+            onAuthSuccess={handleAuthSuccess}
+          />
+        ) : (
+          <LoginPage
+            onSwitchToSignUp={() => setAuthView('signup')}
+            onAuthSuccess={handleAuthSuccess}
+            onForgotPassword={() => setIsForgotModalOpen(true)}
+          />
+        )}
+
+        <ForgotPasswordModal
+          isOpen={isForgotModalOpen}
+          onClose={() => setIsForgotModalOpen(false)}
+        />
+
+        <Toast toast={toast} onClose={() => setToast(null)} />
+      </>
+    );
+  }
+
+  // ----------------------------------------------------
+  // 3. Authenticated View: Protected Dashboard
+  // ----------------------------------------------------
   return (
     <div className="app-container">
-      {/* Navigation Header */}
-      <Header onOpenAddModal={handleOpenAddModal} />
+      {/* Navigation Header with User Profile and Logout */}
+      <Header
+        onOpenAddModal={handleOpenAddModal}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      />
 
       {/* Main Content Area */}
       <main className="main-content">
@@ -202,7 +309,6 @@ export default function App() {
           stats={statsQuery.data}
           selectedCategory={category}
           onSelectCategory={(cat) => {
-            // Clicking active category toggles back to 'All'
             handleCategoryChange(category === cat ? 'All' : cat);
           }}
         />

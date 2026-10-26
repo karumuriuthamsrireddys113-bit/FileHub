@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import authRoutes from './routes/authRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
@@ -12,24 +14,26 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// CORS configuration supporting single/multiple origins or wildcard for dev & prod
+// CORS configuration supporting credentials and custom origins
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim())
-  : '*';
+  : ['http://localhost:3000', 'http://127.0.0.1:3000'];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+    // If wildcard or no origin (curl/mobile) or in allowed list
     if (!origin || allowedOrigins === '*' || allowedOrigins.includes(origin)) {
-      return callback(null, true);
+      return callback(null, origin || true);
     }
-    return callback(null, true); // Fallback to permissive to avoid deployment downtime
+    return callback(null, origin || true); // Permissive fallback to prevent CORS lockouts
   },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
 
 app.use(express.json());
+app.use(cookieParser());
 
 // Request logging middleware for debugging and observability
 app.use((req, res, next) => {
@@ -47,6 +51,7 @@ app.get('/', (req, res) => {
     status: 'online',
     service: 'FileHub Backend API',
     endpoints: {
+      auth: '/api/auth',
       health: '/api/health',
       documents: '/api/documents',
       stats: '/api/documents/stats'
@@ -67,7 +72,8 @@ const healthHandler = (req, res) => {
 app.get('/health', healthHandler);
 app.get('/api/health', healthHandler);
 
-// Mount Document Routes
+// Mount API Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
 
 // Catch-all 404 handler for undefined API routes

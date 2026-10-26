@@ -28,10 +28,12 @@ function isValidHttpUrl(string) {
 /**
  * GET /api/documents
  * List documents with server-side pagination, search, category filter, and sorting.
+ * Strictly scoped to the authenticated user.
  */
 export async function getDocuments(req, res, next) {
   try {
     const prisma = getPrisma();
+    const userId = req.user.id;
 
     // 1. Pagination parameters
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
@@ -48,8 +50,10 @@ export async function getDocuments(req, res, next) {
     const sortBy = ALLOWED_SORT_FIELDS.includes(req.query.sortBy) ? req.query.sortBy : 'createdAt';
     const order = ALLOWED_SORT_ORDERS.includes(req.query.order) ? req.query.order : 'desc';
 
-    // Construct Prisma where query
-    const where = {};
+    // Construct Prisma where query scoped to authenticated user
+    const where = {
+      userId
+    };
 
     if (search) {
       where.name = {
@@ -96,11 +100,12 @@ export async function getDocuments(req, res, next) {
 
 /**
  * GET /api/documents/:id
- * Retrieve a single document by ID.
+ * Retrieve a single document by ID, checking ownership.
  */
 export async function getDocumentById(req, res, next) {
   try {
     const { id } = req.params;
+    const userId = req.user.id;
 
     if (!OBJECT_ID_REGEX.test(id)) {
       return res.status(404).json({
@@ -114,7 +119,8 @@ export async function getDocumentById(req, res, next) {
       where: { id }
     });
 
-    if (!document) {
+    // Check document existence and ownership
+    if (!document || (document.userId && document.userId !== userId)) {
       return res.status(404).json({
         success: false,
         message: 'Document not found'
@@ -132,10 +138,11 @@ export async function getDocumentById(req, res, next) {
 
 /**
  * POST /api/documents
- * Create a new document with validation.
+ * Create a new document assigned to the authenticated user.
  */
 export async function createDocument(req, res, next) {
   try {
+    const userId = req.user.id;
     const { name, description, category, fileUrl } = req.body;
     const errors = {};
 
@@ -174,7 +181,8 @@ export async function createDocument(req, res, next) {
         name: trimmedName,
         description: description ? String(description).trim() : null,
         category,
-        fileUrl: trimmedUrl || null
+        fileUrl: trimmedUrl || null,
+        userId
       }
     });
 
@@ -190,11 +198,12 @@ export async function createDocument(req, res, next) {
 
 /**
  * PUT /api/documents/:id
- * Update an existing document with validation.
+ * Update an existing document with ownership check and validation.
  */
 export async function updateDocument(req, res, next) {
   try {
     const { id } = req.params;
+    const userId = req.user.id;
 
     if (!OBJECT_ID_REGEX.test(id)) {
       return res.status(404).json({
@@ -208,7 +217,8 @@ export async function updateDocument(req, res, next) {
       where: { id }
     });
 
-    if (!existing) {
+    // Check existence and verify user is the document owner
+    if (!existing || (existing.userId && existing.userId !== userId)) {
       return res.status(404).json({
         success: false,
         message: 'Document not found'
@@ -269,11 +279,12 @@ export async function updateDocument(req, res, next) {
 
 /**
  * DELETE /api/documents/:id
- * Delete a document by ID.
+ * Delete a document by ID with ownership check.
  */
 export async function deleteDocument(req, res, next) {
   try {
     const { id } = req.params;
+    const userId = req.user.id;
 
     if (!OBJECT_ID_REGEX.test(id)) {
       return res.status(404).json({
@@ -287,7 +298,8 @@ export async function deleteDocument(req, res, next) {
       where: { id }
     });
 
-    if (!existing) {
+    // Check existence and verify user is the document owner
+    if (!existing || (existing.userId && existing.userId !== userId)) {
       return res.status(404).json({
         success: false,
         message: 'Document not found'
@@ -309,17 +321,21 @@ export async function deleteDocument(req, res, next) {
 
 /**
  * GET /api/documents/stats
- * Retrieve total document counts and category statistics.
+ * Retrieve total document counts and category statistics strictly for the authenticated user.
  */
 export async function getDocumentStats(req, res, next) {
   try {
     const prisma = getPrisma();
+    const userId = req.user.id;
 
-    // Execute total count and grouped counts
+    // Execute total count and grouped counts strictly scoped to current user
     const [totalDocuments, groupedCategories] = await Promise.all([
-      prisma.document.count(),
+      prisma.document.count({
+        where: { userId }
+      }),
       prisma.document.groupBy({
         by: ['category'],
+        where: { userId },
         _count: {
           id: true
         }

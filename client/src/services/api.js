@@ -14,6 +14,7 @@ if (rawApiUrl) {
 // Shared Axios client instance with production-ready configuration
 const api = axios.create({
   baseURL,
+  withCredentials: true, // Send and receive HTTP-only session cookies
   headers: {
     'Content-Type': 'application/json'
   },

@@ -116,6 +116,7 @@ If you prefer setting up the web service manually:
    | :--- | :--- | :--- |
    | `NODE_ENV` | `production` | Enables production mode & error handling |
    | `DATABASE_URL` | `mongodb+srv://<user>:<password>@cluster.mongodb.net/filehub?retryWrites=true&w=majority` | Your MongoDB Atlas connection URI |
+   | `JWT_SECRET` | *(Generate a 32+ character random string)* | Secret key for signing authentication JWT cookies |
    | `ALLOWED_ORIGINS` | `*` *(or your Vercel URL later)* | Allowed CORS origins |
 5. Click **Deploy Web Service**.
 6. Verify deployment by visiting `https://<your-render-app>.onrender.com/api/health` in your browser. You should see:

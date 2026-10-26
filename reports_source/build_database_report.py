@@ -317,8 +317,13 @@ export async function getDocumentStats(req, res, next) {
     # Build intermediate PDF
     doc.build(story, canvasmaker=NumberedCanvas)
 
-    # Merge with custom 4 pages
-    total_pages = merge_with_custom_first_four_pages(temp_pdf, output_final_pdf, project_subtitle="File & Document Organizer")
+    # Merge with custom 4 pages (Database Mentor: Ms. Moufia Justin)
+    total_pages = merge_with_custom_first_four_pages(
+        temp_pdf, output_final_pdf,
+        project_subtitle="File & Document Organizer",
+        mentor_name="Ms. Moufia Justin",
+        mentor_title="Technical Mentor"
+    )
     return total_pages
 
 if __name__ == "__main__":

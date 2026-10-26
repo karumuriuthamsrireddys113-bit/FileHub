@@ -36,7 +36,7 @@ class FirstFourPagesCanvas(canvas.Canvas):
         self.restoreState()
 
 
-def generate_first_four_pages(output_pdf, project_subtitle="File & Document Organizer"):
+def generate_first_four_pages(output_pdf, project_subtitle="File & Document Organizer", mentor_name="Mr. U. Vishvam", mentor_title="Technical Mentor"):
     """
     Generates the customized first four pages:
     1. Cover Page
@@ -84,8 +84,8 @@ def generate_first_four_pages(output_pdf, project_subtitle="File & Document Orga
     story.append(Spacer(1, 12))
 
     story.append(Paragraph("Under the guidance of", styles['DocTitle']))
-    story.append(Paragraph("<b>Mr. U. Vishvam</b>", styles['DocTitle']))
-    story.append(Paragraph("Technical Mentor", styles['DocTitle']))
+    story.append(Paragraph(f"<b>{mentor_name}</b>", styles['DocTitle']))
+    story.append(Paragraph(mentor_title, styles['DocTitle']))
     story.append(Spacer(1, 12))
 
     if os.path.exists(logo_path):
@@ -125,8 +125,8 @@ def generate_first_four_pages(output_pdf, project_subtitle="File & Document Orga
 
     sig_data = [
         ["", "--------------------------------------"],
-        ["", "Mr. U. Vishvam"],
-        ["", "Technical Mentor"]
+        ["", mentor_name],
+        ["", mentor_title]
     ]
     t_sig = Table(sig_data, colWidths=[275, 220])
     t_sig.setStyle(TableStyle([
@@ -156,10 +156,10 @@ def generate_first_four_pages(output_pdf, project_subtitle="File & Document Orga
     story.append(Spacer(1, 16))
 
     decl_p1 = (
-        "I hereby declare that the report titled <b>FileHub - File &amp; Document Organizer</b>, "
-        "submitted by me in partial fulfilment of the requirements for the award of the degree of "
-        "<b>Bachelor of Technology in Computer Science and Engineering (CSE)</b> at Alliance University, "
-        "is a record of my original work carried out under the supervision of <b>Mr. U. Vishvam, Technical Mentor</b>."
+        f"I hereby declare that the report titled <b>FileHub - File &amp; Document Organizer</b>, "
+        f"submitted by me in partial fulfilment of the requirements for the award of the degree of "
+        f"<b>Bachelor of Technology in Computer Science and Engineering (CSE)</b> at Alliance University, "
+        f"is a record of my original work carried out under the supervision of <b>{mentor_name}, {mentor_title}</b>."
     )
     decl_p2 = (
         "I further confirm that all views, findings, and conclusions expressed herein are the result of "
@@ -204,9 +204,9 @@ def generate_first_four_pages(output_pdf, project_subtitle="File & Document Orga
         "completion of this project titled <b>FileHub - File &amp; Document Organizer</b>."
     )
     ack_p2 = (
-        "First and foremost, I extend my sincere thanks to my mentor and guide, <b>Mr. U. Vishvam</b>, "
-        "for his unwavering support, insightful feedback, and encouragement throughout the development "
-        "of this system. His expertise in computer science and his commitment to fostering innovation "
+        f"First and foremost, I extend my sincere thanks to my mentor and guide, <b>{mentor_name}</b>, "
+        "for their unwavering support, insightful feedback, and encouragement throughout the development "
+        "of this system. Their expertise in computer science and their commitment to fostering innovation "
         "provided the perfect foundation for this work."
     )
     ack_p3 = (

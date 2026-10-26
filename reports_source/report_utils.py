@@ -281,14 +281,14 @@ def merge_with_sample_first_four_pages(temp_generated_pdf, final_output_pdf):
     return len(writer.pages)
 
 
-def merge_with_custom_first_four_pages(temp_generated_pdf, final_output_pdf, project_subtitle="File & Document Organizer"):
+def merge_with_custom_first_four_pages(temp_generated_pdf, final_output_pdf, project_subtitle="File & Document Organizer", mentor_name="Mr. U. Vishvam", mentor_title="Technical Mentor"):
     """
     Generates customized first 4 pages with user's academic details
     and appends all pages from temp_generated_pdf.
     """
     temp_first_four = "/tmp/temp_first_four_pages.pdf"
     from generate_first_four_pages import generate_first_four_pages
-    generate_first_four_pages(temp_first_four, project_subtitle=project_subtitle)
+    generate_first_four_pages(temp_first_four, project_subtitle=project_subtitle, mentor_name=mentor_name, mentor_title=mentor_title)
     
     reader_first_four = pypdf.PdfReader(temp_first_four)
     reader_generated = pypdf.PdfReader(temp_generated_pdf)

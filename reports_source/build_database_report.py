@@ -320,7 +320,7 @@ export async function getDocumentStats(req, res, next) {
     # Merge with custom 4 pages (Database Mentor: Ms. Moufia Justin)
     total_pages = merge_with_custom_first_four_pages(
         temp_pdf, output_final_pdf,
-        project_subtitle="File & Document Organizer",
+        project_subtitle="Advanced Database Systems",
         mentor_name="Ms. Moufia Justin",
         mentor_title="Technical Mentor"
     )

@@ -320,7 +320,7 @@ export function useDebounce(value, delay = 300) {
     # Merge with custom 4 pages (Frontend Mentor: Mr. Vaibhav Giri)
     total_pages = merge_with_custom_first_four_pages(
         temp_pdf, output_final_pdf,
-        project_subtitle="File & Document Organizer",
+        project_subtitle="Frontend Web Development System",
         mentor_name="Mr. Vaibhav Giri",
         mentor_title="Technical Mentor"
     )

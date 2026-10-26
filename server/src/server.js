@@ -6,7 +6,7 @@ import authRoutes from './routes/authRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
-import { initializeDatabase, disconnectDatabase } from './config/prisma.js';
+import { initializeDatabase, disconnectDatabase, getPrisma } from './config/prisma.js';
 import { seedSampleDocuments } from './config/seed.js';
 
 dotenv.config();
@@ -59,14 +59,37 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check endpoints for Render and monitoring services
-const healthHandler = (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    service: 'FileHub API',
-    environment: process.env.NODE_ENV || 'development'
-  });
+// Health check endpoints for Render and monitoring services with live DB verification
+const healthHandler = async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const [userCount, documentCount] = await Promise.all([
+      prisma.user.count(),
+      prisma.document.count()
+    ]);
+
+    res.status(200).json({
+      status: 'ok',
+      database: {
+        status: 'connected',
+        provider: 'MongoDB',
+        registeredUsers: userCount,
+        totalStoredDocuments: documentCount
+      },
+      timestamp: new Date().toISOString(),
+      service: 'FileHub API',
+      environment: process.env.NODE_ENV || 'development'
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'degraded',
+      database: {
+        status: 'error',
+        message: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
 };
 
 app.get('/health', healthHandler);

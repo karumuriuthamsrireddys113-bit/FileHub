@@ -1,5 +1,8 @@
 # FileHub - Full-Stack File and Document Organizer
 
+**Live Demo Application:** [https://file-hub-eta.vercel.app/](https://file-hub-eta.vercel.app/)
+**GitHub Repository:** [https://github.com/karumuriuthamsrireddys113-bit/FileHub.git](https://github.com/karumuriuthamsrireddys113-bit/FileHub.git)
+
 **FileHub** is a clean, modern, beginner-friendly full-stack web application designed to help users organize, search, filter, and manage documents in one centralized place.
 
 Built with **React**, **Node.js**, **Express.js**, **MongoDB**, **Prisma ORM**, and **TanStack Query**.
@@ -442,3 +445,6 @@ FileHub is fully optimized and production-ready for deployment:
 ## 📜 License
 
 This project is licensed under the MIT License.
+
+
+

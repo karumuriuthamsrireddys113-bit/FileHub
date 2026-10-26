@@ -1,0 +1,40 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+*/node_modules/
+
+# Build output
+dist/
+build/
+client/dist/
+
+# Environment variables (ignore secret files, keep example templates)
+.env
+.env.*
+!.env.example
+server/.env
+server/.env.*
+!server/.env.example
+client/.env
+client/.env.*
+!client/.env.example
+*.env.local
+
+# Vercel & Deployment
+.vercel
+
+# OS Files
+.DS_Store
+Thumbs.db

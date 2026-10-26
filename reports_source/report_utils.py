@@ -45,9 +45,10 @@ class NumberedCanvas(canvas.Canvas):
 
         # Page numbering: first 4 pages are from the original PDF, so page 1 of this canvas is page 5
         page_num = self._pageNumber + 4
-        self.setFont("Times-Roman", 10)
-        # Draw bottom page number centered
-        self.drawCentredString(A4[0] / 2.0, 32, str(page_num))
+        # The sample PDF TOC on page 5 has no bottom page number
+        if page_num > 5:
+            self.setFont("Times-Roman", 10)
+            self.drawCentredString(A4[0] / 2.0, 32, str(page_num))
         self.restoreState()
 
 
